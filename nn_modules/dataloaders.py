@@ -1,11 +1,13 @@
 import torch 
 from torch.utils.data import Dataset 
 import os
-import random
 import nibabel as nib
 import numpy as np
 import torch.nn.functional as F
 import torchio as tio
+
+import torchvision.transforms as transforms
+
 
 class CTDataset(Dataset):
     def __init__(self, annotations_folder, img_dir, transform=None, target_transform=None) -> None:
@@ -16,7 +18,7 @@ class CTDataset(Dataset):
         self.labels = os.listdir(annotations_folder)
 
     def __len__(self):
-        return len(self.list_files)
+        return len(self.list_files)                     
     
     def __getitem__(self, idx):
         #all the data augumentation and stuff must be done in this method cuz this is what is being 
@@ -33,9 +35,10 @@ class CTDataset(Dataset):
 
         volume, mask = self.dimension_adjust(volume, mask)
         volume, mask = self.preprocessing(volume, mask)
+        volumeTensor, maskTensor = torch.tensor(volume), torch.tensor(mask)
+        volumeTensor, maskTensor = self.augumentation(volumeTensor, maskTensor)
 
-        return torch.tensor(volume), torch.tensor(mask)
-
+        return volumeTensor, maskTensor
 
 
     def preprocessing(self, image, mask):        
@@ -102,4 +105,30 @@ class CTDataset(Dataset):
         #after adjusting depth, we rescale the width and height to be 128 x 128
 
         return image, mask
+
+    """
+    Data Augumentation code:
+    1. Horizontal and Vertical Flipping 
+    2. Random rotation in the range [-20*, 20*]
+    3. Translation upto 10% of the axis dimension
+    4. Zoom between [80, 120]% of the axial plane 
+
+    Assumption: First dimension is the number of rows, then columms, then depth at the end.  
+    Albumentations requires a newer version of glibc so use PyTorch  
+
+    PyTorch expects Tensors     
+    """
+
+    def augumentation(self, imageTensor, maskTensor):
+        p = 0.5
+        transform = torch.nn.Sequential(
+            transforms.RandomHorizontalFlip(p), 
+            transforms.RandomVerticalFlip(p), 
+            transforms.RandomAffine(degrees=20, translate=(0.1), scale=(0.8, 1.2))
+        )
+
+        imageTensor = transform(imageTensor)
+        maskTensor = transform(maskTensor)
+
+        return imageTensor, maskTensor
 
