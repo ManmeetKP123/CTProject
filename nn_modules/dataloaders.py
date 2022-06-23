@@ -23,6 +23,7 @@ class CTDataset(Dataset):
         #fed into the network 
 
         #get the volume in numpy array format
+        #EXPECTS A SPATIAL RESOLUTION OF 128 X 128 X depth
         volume_path = os.path.join(self.img_dir, self.list_files[idx])
         volume = nib.load(volume_path).get_data()
 
@@ -34,21 +35,30 @@ class CTDataset(Dataset):
         volume, mask = self.preprocessing(volume, mask)
 
         return torch.tensor(volume), torch.tensor(mask)
-    
 
 
-    def preprocessing(self, image, mask):
+
+    def preprocessing(self, image, mask):        
+        #GONNA assume that I can change a numpy array to an Image in torchIO and use that as an input to the rescale
+        #intensity function
+        image = tio.Image(image)
+        mask = tio.Image(mask)
+
+        #intensity clipping
+        transform = tio.RescaleIntensity(out_min_max= (0, 1), in_min_max=(-250, 500))
+        image = transform(image)
+        mask = transform(mask)
+
         #normalization
-        # transform = tio.transforms.RescaleIntensity(out_min_max: Union[float, Tuple[float, float]] = (0, 1), 
-        # percentiles: Union[float, Tuple[float, float]] = (0, 100), 
-        # masking_method: Optional[Union[str, Callable[[Tensor], Tensor], int, Tuple[int, int, int], 
-        # Tuple[int, int, int, int, int, int]]] = None, in_min_max: Optional[Tuple[float, float]] = None, **kwargs)[source]
+        transform = tio.ZNormalization()
+        image = transform(image)
+        mask = transform(mask)
+
         return image, mask
 
 
 
     def dimension_adjust(self, image, mask):
-
         if np.shape(image) != np.shape(mask):
             raise Exception("Image and Annotation are not of the same shape")
         #in the case that the actual image is just smaller than 128 slices
@@ -88,6 +98,8 @@ class CTDataset(Dataset):
                     break
             image = image[:, :, start:end]
             mask = mask[:, :, start:end]
+        
+        #after adjusting depth, we rescale the width and height to be 128 x 128
 
         return image, mask
 
