@@ -7,8 +7,10 @@ from unet3d import UNet3D
 from dataloaders import CTDataset
 from config_file import config_file
 
+print(torch.cuda.is_available())
+print(torch.__version__)
 #define the dice loss 
-device = torch.device("cuda")
+device = torch.device("cpu")
 def dice_loss(self, y_pred, y_true, smooth = 1):
 
     #difference between flatten vs view??
@@ -21,8 +23,10 @@ def dice_loss(self, y_pred, y_true, smooth = 1):
 
     return 1 - dice()
 
-
-train_loader = DataLoader(CTDataset, batch_size = config_file.batch_size, shuffle = True)
+img_dir = "/ubc/ece/home/ra/other/manmeetp/CTProject/resampled_input_data"
+annotations = "/ubc/ece/home/ra/other/manmeetp/CTProject/MED_ABD_LYMPH_MASKS"
+trainset = CTDataset(annotations_folder=annotations, img_dir=img_dir)
+train_loader = DataLoader(trainset, batch_size = config_file.batch_size, shuffle = True)
 
 model = UNet3D()
 model.to(device)
