@@ -26,6 +26,7 @@ class LUConv(nn.Module):
     def __init__(self, in_chan, out_chan, act):
         super(LUConv, self).__init__()
         self.conv1 = nn.Conv3d(in_chan, out_chan, kernel_size=3, padding=1)
+        print("the output has number of channels as " + str(out_chan))
         self.bn1 = ContBatchNorm3d(out_chan)
 
         if act == 'relu':
@@ -45,10 +46,14 @@ class LUConv(nn.Module):
 def _make_nConv(in_channel, depth, act, double_chnnel=False):
     if double_chnnel:
         layer1 = LUConv(in_channel, 32 * (2 ** (depth+1)),act)
+        print("layer 1 was success")
         layer2 = LUConv(32 * (2 ** (depth+1)), 32 * (2 ** (depth+1)),act)
+        print("layer 2 was success")
     else:
         layer1 = LUConv(in_channel, 32*(2**depth),act)
+        print("layer 1 was success")
         layer2 = LUConv(32*(2**depth), 32*(2**depth)*2,act)
+        print("layer 2 was success")
 
     return nn.Sequential(layer1,layer2)
 
@@ -113,17 +118,17 @@ class OutputTransition(nn.Module):
 class UNet3D(nn.Module):
     # the number of convolutions in each layer corresponds
     # to what is in the actual prototxt, not the intent
-    def __init__(self, n_class=1, act='relu'):
+    def __init__(self, n_class=2, act='relu'):
         super(UNet3D, self).__init__()
 
-        self.down_tr64 = DownTransition(1,0,act)
-        self.down_tr128 = DownTransition(64,1,act)
-        self.down_tr256 = DownTransition(128,2,act)
-        self.down_tr512 = DownTransition(256,3,act)
+        self.down_tr64 = DownTransition(2,0,act)
+        self.down_tr128 = DownTransition(64,2,act)
+        self.down_tr256 = DownTransition(128,3,act)
+        self.down_tr512 = DownTransition(256,4,act)
 
-        self.up_tr256 = UpTransition(512, 512,2,act)
-        self.up_tr128 = UpTransition(256,256, 1,act)
-        self.up_tr64 = UpTransition(128,128,0,act)
+        self.up_tr256 = UpTransition(512, 512,3,act)
+        self.up_tr128 = UpTransition(256,256, 2,act)
+        self.up_tr64 = UpTransition(128,128,1,act)
         self.out_tr = OutputTransition(64, n_class)
 
     def forward(self, x):

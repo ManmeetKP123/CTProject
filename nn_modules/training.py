@@ -9,8 +9,8 @@ from config_file import config_file
 
 print(torch.cuda.is_available())
 print(torch.__version__)
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #define the dice loss 
-device = torch.device("cpu")
 def dice_loss(self, y_pred, y_true, smooth = 1):
 
     #difference between flatten vs view??
@@ -23,8 +23,8 @@ def dice_loss(self, y_pred, y_true, smooth = 1):
 
     return 1 - dice()
 
-img_dir = "/ubc/ece/home/ra/other/manmeetp/CTProject/resampled_input_data"
-annotations = "/ubc/ece/home/ra/other/manmeetp/CTProject/MED_ABD_LYMPH_MASKS"
+img_dir = "/ubc/ece/home/ra/other/manmeetp/CTProject/training_set/128_image_arrays"
+annotations = "/ubc/ece/home/ra/other/manmeetp/CTProject/training_set/128_mask_arrays"
 trainset = CTDataset(annotations_folder=annotations, img_dir=img_dir)
 train_loader = DataLoader(trainset, batch_size = config_file.batch_size, shuffle = True)
 
@@ -34,23 +34,26 @@ criterion = dice_loss
 
 #Paper used optimizer 
 optimizer = torch.optim.Adam(model.parameters(), config_file.learning_rate)
+lambda1 = lambda epoch: 0.65 ** epoch
+scheduler = torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda1)
 
 # Print model's state_dict
-print("Model's state_dict:")
-for param_tensor in model.state_dict():
-    print(param_tensor, "\t", model.state_dict()[param_tensor].size())
+# print("Model's state_dict:")
+# for param_tensor in model.state_dict():
+#     print(param_tensor, "\t", model.state_dict()[param_tensor].size())
 
 
 
-# for epoch in range(config_file.epochs):
-#     scheduler.step(epoch)
-#     model.train()
+for epoch in range(config_file.epochs):
+    scheduler.step()
+    model.train()
 
-#     for batch_idx, (x, y) in enumerate(train_loader):
-#         x, y = x.float().to(device), y.float().to(device)
-#         pred = model(x)
-#         loss = criterion(pred, y)
-#         optimizer.zero_grad()
-#         loss.backward()
-#         optimizer.step()
+    for batch_idx, (x, y) in enumerate(train_loader):
+        x, y = x.float().to(device), y.float().to(device)
+        pred = model(x)
+        loss = criterion(pred, y)
+        print("Dice loss " + str(loss.item()))
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
 

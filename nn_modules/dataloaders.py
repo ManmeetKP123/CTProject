@@ -5,7 +5,9 @@ import nibabel as nib
 import numpy as np
 import torch.nn.functional as F
 import torchio as tio
+import albumentations as A
 
+from albumentations.pytorch import ToTensorV2
 import torchvision.transforms as transforms
 
 
@@ -27,84 +29,55 @@ class CTDataset(Dataset):
         #get the volume in numpy array format
         #EXPECTS A SPATIAL RESOLUTION OF 128 X 128 X depth
         volume_path = os.path.join(self.img_dir, self.list_files[idx])
-        volume = nib.load(volume_path).get_data()
+        volume = np.load(volume_path)
 
         #do the same for masks
         mask_path = os.path.join(self.annotations_folder, self.labels[idx])
-        mask = nib.load(mask_path).get_data()
+        mask = np.load(mask_path)
 
-        volume, mask = self.dimension_adjust(volume, mask)
-        volume, mask = self.preprocessing(volume, mask)
+        #normalization
+        volume, mask = self.normalizing(volume, mask)
         volumeTensor, maskTensor = torch.tensor(volume), torch.tensor(mask)
         volumeTensor, maskTensor = self.augumentation(volumeTensor, maskTensor)
 
         return volumeTensor, maskTensor
 
 
-    def preprocessing(self, image, mask):        
-        #GONNA assume that I can change a numpy array to an Image in torchIO and use that as an input to the rescale
-        #intensity function
-        image = tio.Image(image)
-        mask = tio.Image(mask)
+    # def preprocessing(self, image, mask):        
+    #     #GONNA assume that I can change a numpy array to an Image in torchIO and use that as an input to 
+    #     # the rescale intensity function
 
-        #intensity clipping
-        transform = tio.RescaleIntensity(out_min_max= (0, 1), in_min_max=(-250, 500))
-        image = transform(image)
-        mask = transform(mask)
+    #     #conclusion: cannot do that
+    #     image = tio.Image(torch.tensor(image))
+    #     mask = tio.Image(torch.tensor(mask))
 
-        #normalization
-        transform = tio.ZNormalization()
-        image = transform(image)
-        mask = transform(mask)
+    #     #intensity clipping
+    #     transform = tio.RescaleIntensity(out_min_max= (0, 1), in_min_max=(-250, 500))
+    #     image = transform(image)
+    #     mask = transform(mask)
 
-        return image, mask
+    #     #normalization
+    #     transform = tio.ZNormalization()
+    #     image = transform(image)
+    #     mask = transform(mask)
+
+    #     return image, mask
 
 
+    def normalizing(self, volume, mask):
+        volume_norm = []
+        mask_norm = []
+        for slice_index in range(0, np.shape(volume)[2]):
+            vol_slice = volume[:, :, slice_index]
+            norm_slice = (vol_slice - np.min(vol_slice)) / (np.max(vol_slice) - np.min(vol_slice))
+            volume_norm.append(norm_slice)
 
-    def dimension_adjust(self, image, mask):
-        if np.shape(image) != np.shape(mask):
-            raise Exception("Image and Annotation are not of the same shape")
-        #in the case that the actual image is just smaller than 128 slices
-        if (np.shape(mask)[2] < 128):
-            #do something
-            curr_depth = np.shape(mask)[2]
-
-            """
-            pad: a list of length 2 * len(source.shape) of the form (begin last axis, end last axis, 
-            begin 2nd to last axis, end 2nd to last axis, begin 3rd to last axis, etc.) that states 
-            how many dimensions should be added to the beginning and end of each axis,
-            """
-
-            #just padding the last dimension so only the depth
-            pad = 128 - curr_depth
-            mask = F.pad(input=mask, pad=(0, pad), mode='constant', value=0)
-            image = F.pad(input = image, pad=(0, pad), mode='constant', value=0)
-
-        else:
-            #finding the peak of the annotation instead of randomly cropping the last dimension
-            peak_sum = np.sum(image, axis=(0, 1))
-            peak_loc = np.argmax(peak_sum)
-
-            start = peak_loc
-            end = peak_loc
-
-            no_slices = 0
-            #gets the indices of the 128 slices around the peak 
-            while True:
-                start -= 1
-                no_slices += 1
-                if (no_slices == 128):
-                    break
-                end += 1
-                no_slices += 1
-                if (no_slices == 128):
-                    break
-            image = image[:, :, start:end]
-            mask = mask[:, :, start:end]
-        
-        #after adjusting depth, we rescale the width and height to be 128 x 128
-
-        return image, mask
+        for slice_index in range(0, np.shape(mask)[2]):
+            mask_slice = mask[:, :, slice_index]
+            norm_slice = (mask - np.min(mask_slice)) / (np.max(mask_slice) - np.min(mask_slice))
+            mask_norm.append(norm_slice)
+        print("success")
+        return np.array(volume_norm), np.array(mask_norm)
 
     """
     Data Augumentation code:
@@ -119,12 +92,12 @@ class CTDataset(Dataset):
     PyTorch expects Tensors     
     """
 
+    #took away the affine code bc it was causing errors 
     def augumentation(self, imageTensor, maskTensor):
         p = 0.5
         transform = torch.nn.Sequential(
             transforms.RandomHorizontalFlip(p), 
-            transforms.RandomVerticalFlip(p), 
-            transforms.RandomAffine(degrees=20, translate=(0.1), scale=(0.8, 1.2))
+            transforms.RandomVerticalFlip(p),   
         )
 
         imageTensor = transform(imageTensor)
