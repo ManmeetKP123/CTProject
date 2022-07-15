@@ -12,13 +12,13 @@ print(torch.cuda.is_available())
 print(torch.__version__)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #define the dice loss 
-def dice_loss(self, y_pred, y_true, smooth = 1):
+def dice_loss(self, y_pred, y_true):
 
     #difference between flatten vs view??
 
     y_pred = y_pred.view(-1)
     y_true = y_true.view(-1)
-
+    smooth = 1
     intersection = (y_true * y_pred).sum()
     dice = (2 * intersection  + smooth)/(y_true.sum() + y_pred.sum() + smooth)
 
@@ -52,6 +52,8 @@ for epoch in range(config_file.epochs):
     for batch_idx, (x, y) in enumerate(train_loader):
         x, y = x.float().to(device), y.float().to(device)
         pred = model(x)
+        print("this type here " + str(type(y)))
+        print("this dimension " + str(y.size()))
         loss = criterion(pred, y)
         print("Dice loss " + str(loss.item()))
         optimizer.zero_grad()

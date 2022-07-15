@@ -144,7 +144,7 @@ class U_Net(nn.Module):
     def __init__(self, img_ch=1, output_ch=1):
         super(U_Net, self).__init__()
 
-        self.Maxpool = nn.MaxPool2d(kernel_size=2, stride=2)
+        self.Maxpool = nn.MaxPool3d(kernel_size=2, stride=2)
 
         self.Conv1 = conv_block(ch_in=img_ch, ch_out=32)
         self.Conv2 = conv_block(ch_in=32, ch_out=64)
@@ -170,16 +170,19 @@ class U_Net(nn.Module):
     def forward(self, x):
         # encoding path
         x1 = self.Conv1(x)
-
+        print("line 173 " + str(x1.size()))
         x2 = self.Maxpool(x1)
         x2 = self.Conv2(x2)
 
+        print("line 177 " + str(x2.size()))
         x3 = self.Maxpool(x2)
         x3 = self.Conv3(x3)
 
+        print("line 181 " + str(x3.size()))
         x4 = self.Maxpool(x3)
         x4 = self.Conv4(x4)
 
+        print("line 185 " + str(x4.size()))
         x5 = self.Maxpool(x4)
         x5 = self.Conv5(x5)
 

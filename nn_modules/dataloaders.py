@@ -40,7 +40,7 @@ class CTDataset(Dataset):
         volumeTensor, maskTensor = torch.tensor(volume), torch.tensor(mask)
         volumeTensor, maskTensor = self.augumentation(volumeTensor, maskTensor)
         volumeTensor = volumeTensor.reshape(1, volumeTensor.size(dim=0), volumeTensor.size(dim=1), volumeTensor.size(dim=2))
-        # maskTensor = maskTensor.reshape(1, maskTensor.size(dim=0), maskTensor.size(dim=1), maskTensor.size(dim=2))
+        #maskTensor = maskTensor.reshape(1, maskTensor.size(dim=0), maskTensor.size(dim=1), maskTensor.size(dim=2))
 
         return volumeTensor, maskTensor
 
