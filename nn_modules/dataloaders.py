@@ -39,29 +39,10 @@ class CTDataset(Dataset):
         volume, mask = self.normalizing(volume, mask)
         volumeTensor, maskTensor = torch.tensor(volume), torch.tensor(mask)
         volumeTensor, maskTensor = self.augumentation(volumeTensor, maskTensor)
+        volumeTensor = volumeTensor.reshape(1, volumeTensor.size(dim=0), volumeTensor.size(dim=1), volumeTensor.size(dim=2))
+        # maskTensor = maskTensor.reshape(1, maskTensor.size(dim=0), maskTensor.size(dim=1), maskTensor.size(dim=2))
 
         return volumeTensor, maskTensor
-
-
-    # def preprocessing(self, image, mask):        
-    #     #GONNA assume that I can change a numpy array to an Image in torchIO and use that as an input to 
-    #     # the rescale intensity function
-
-    #     #conclusion: cannot do that
-    #     image = tio.Image(torch.tensor(image))
-    #     mask = tio.Image(torch.tensor(mask))
-
-    #     #intensity clipping
-    #     transform = tio.RescaleIntensity(out_min_max= (0, 1), in_min_max=(-250, 500))
-    #     image = transform(image)
-    #     mask = transform(mask)
-
-    #     #normalization
-    #     transform = tio.ZNormalization()
-    #     image = transform(image)
-    #     mask = transform(mask)
-
-    #     return image, mask
 
 
     def normalizing(self, volume, mask):

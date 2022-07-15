@@ -10,6 +10,8 @@ on my own dataset.
 
 class ContBatchNorm3d(nn.modules.batchnorm._BatchNorm):
     def _check_input_dim(self, input):
+        print(input.dim())
+        print(type(input))
 
         if input.dim() != 5:
             raise ValueError('expected 5D input (got {}D input)'.format(input.dim()))
@@ -121,14 +123,14 @@ class UNet3D(nn.Module):
     def __init__(self, n_class=2, act='relu'):
         super(UNet3D, self).__init__()
 
-        self.down_tr64 = DownTransition(2,0,act)
-        self.down_tr128 = DownTransition(64,2,act)
-        self.down_tr256 = DownTransition(128,3,act)
-        self.down_tr512 = DownTransition(256,4,act)
+        self.down_tr64 = DownTransition(1,0,act)
+        self.down_tr128 = DownTransition(64,1,act)
+        self.down_tr256 = DownTransition(128,2,act)
+        self.down_tr512 = DownTransition(256,3,act)
 
         self.up_tr256 = UpTransition(512, 512,3,act)
-        self.up_tr128 = UpTransition(256,256, 2,act)
-        self.up_tr64 = UpTransition(128,128,1,act)
+        self.up_tr128 = UpTransition(512, 256, 2,act)
+        self.up_tr64 = UpTransition(256, 64,1,act)
         self.out_tr = OutputTransition(64, n_class)
 
     def forward(self, x):

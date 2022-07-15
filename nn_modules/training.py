@@ -6,6 +6,7 @@ from torch.utils.data import Dataset, DataLoader
 from unet3d import UNet3D
 from dataloaders import CTDataset
 from config_file import config_file
+from unet_v2 import U_Net
 
 print(torch.cuda.is_available())
 print(torch.__version__)
@@ -28,7 +29,7 @@ annotations = "/ubc/ece/home/ra/other/manmeetp/CTProject/training_set/128_mask_a
 trainset = CTDataset(annotations_folder=annotations, img_dir=img_dir)
 train_loader = DataLoader(trainset, batch_size = config_file.batch_size, shuffle = True)
 
-model = UNet3D()
+model = U_Net()
 model.to(device)
 criterion = dice_loss
 
