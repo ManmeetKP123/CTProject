@@ -3,21 +3,23 @@ import torch
 from torch import nn 
 import torch.nn.functional as F 
 from torch.utils.data import Dataset, DataLoader 
-from unet3d import UNet3D
+from nn_modules.models.unet3d import UNet3D
 from dataloaders import CTDataset
 from config_file import config_file
-from unet_v2 import U_Net
+from nn_modules.models.unet_v2 import U_Net
 
 print(torch.cuda.is_available())
 print(torch.__version__)
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #define the dice loss 
-def dice_loss(self, y_pred, y_true):
+def dice_loss(y_pred, y_true, smooth = 1):
 
     #difference between flatten vs view??
 
     y_pred = y_pred.view(-1)
     y_true = y_true.view(-1)
+    print("dimension of prediction " + str(y_pred.size()))
+    print("dimension of true " + str(y_true.size()))
     smooth = 1
     intersection = (y_true * y_pred).sum()
     dice = (2 * intersection  + smooth)/(y_true.sum() + y_pred.sum() + smooth)

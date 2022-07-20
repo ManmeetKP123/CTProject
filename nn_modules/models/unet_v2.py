@@ -101,7 +101,6 @@ class single_conv(nn.Module):
         super(single_conv, self).__init__()
         self.conv = nn.Sequential(
             nn.Conv3d(ch_in, ch_out, kernel_size=3, stride=1, padding=1, bias=True),
-            nn.BatchNorm3d(ch_out),
             nn.ReLU(inplace=True)
         )
 
@@ -125,7 +124,6 @@ class Attention_block(nn.Module):
 
         self.psi = nn.Sequential(
             nn.Conv3d(F_int, 1, kernel_size=1, stride=1, padding=0, bias=True),
-            nn.BatchNorm3d(1),
             nn.Sigmoid()
         )
 
