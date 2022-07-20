@@ -15,9 +15,10 @@ class CTDataset(Dataset):
     def __init__(self, annotations_folder, img_dir, transform=None, target_transform=None) -> None:
         self.img_dir = img_dir
         self.annotations_folder = annotations_folder
-
-        self.list_files = os.listdir(img_dir)
-        self.labels = os.listdir(annotations_folder)
+        self.list_files = sorted( filter( lambda x: os.path.isfile(os.path.join(img_dir, x)),
+                        os.listdir(img_dir) ) )
+        self.labels = sorted( filter( lambda x: os.path.isfile(os.path.join(annotations_folder, x)),
+                        os.listdir(annotations_folder) ) )
 
     def __len__(self):
         return len(self.list_files)                     
@@ -39,8 +40,7 @@ class CTDataset(Dataset):
         volume, mask = self.normalizing(volume, mask)
         volumeTensor, maskTensor = torch.tensor(volume), torch.tensor(mask)
         volumeTensor, maskTensor = self.augumentation(volumeTensor, maskTensor)
-        volumeTensor = volumeTensor.reshape(1, volumeTensor.size(dim=0), volumeTensor.size(dim=1), volumeTensor.size(dim=2))
-        maskTensor = maskTensor.reshape(1, maskTensor.size(dim=0), maskTensor.size(dim=1), maskTensor.size(dim=2))
+        
 
         return volumeTensor, maskTensor
 
