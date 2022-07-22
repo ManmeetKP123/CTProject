@@ -35,14 +35,10 @@ class CTDataset(Dataset):
         #do the same for masks
         mask_path = os.path.join(self.annotations_folder, self.labels[idx])
         mask = np.load(mask_path)
-        print("this is the og mask shape " + str(np.shape(mask)))
-        print("this is the og volume shape " + str(np.shape(volume)))
         #normalization
         volume, mask = self.normalizing(volume, mask)
         volumeTensor, maskTensor = torch.tensor(volume), torch.tensor(mask)
-        print("the shape at line 43 for the volume " + str(volumeTensor.size()) + " and the mask " + str(maskTensor.size()))
         volumeTensor, maskTensor = self.augumentation(volumeTensor, maskTensor)
-        print("the shape at line 45 for the volume " + str(volumeTensor.size()) + " and the mask " + str(maskTensor.size()))
         volumeTensor = volumeTensor.reshape(1, volumeTensor.size(dim=0), volumeTensor.size(dim=1), volumeTensor.size(dim=2))
         maskTensor = maskTensor.reshape(1, maskTensor.size(dim=0), maskTensor.size(dim=1), maskTensor.size(dim=2))
 
@@ -59,10 +55,8 @@ class CTDataset(Dataset):
 
         for slice_index in range(0, np.shape(mask)[2]):
             mask_slice = mask[:, :, slice_index]
-            norm_mask_slice = (mask - np.min(mask_slice)) / (np.max(mask_slice) - np.min(mask_slice))
+            norm_mask_slice = (mask_slice - np.min(mask_slice)) / (np.max(mask_slice) - np.min(mask_slice))
             mask_norm.append(norm_mask_slice)
-        print("success")
-        print("line 64 shape of the volume array  " + str(np.shape(np.array(mask_norm))))
         return np.array(volume_norm), np.array(mask_norm)
 
     """
