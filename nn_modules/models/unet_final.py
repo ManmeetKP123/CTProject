@@ -62,20 +62,14 @@ class Up(nn.Module):
 
     def forward(self, x1, x2):
         x1 = self.up(x1)
-        print("dim of upsampled x1 " + str(x1.size()))
-        print("dim of incoming x2 " + str(x2.size()))
 
         diffY = x2.size()[2] - x1.size()[2]
         diffX = x2.size()[3] - x1.size()[3]
         diffZ = x2.size()[4] - x1.size()[4]
-        print(diffY)
-        print(diffX)
-        print(diffZ)
 
         x1 = F.pad(x1, (diffX // 2, diffX - diffX // 2,
                         diffY // 2, diffY - diffY // 2, diffZ // 2, diffZ - diffZ // 2))
         x = torch.cat([x2, x1], dim=1)
-        print("dim after concatenation " + str(x.size()))
         x = self.conv(x)
         return x
 
@@ -111,19 +105,12 @@ class UNet(nn.Module):
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)
-        print("dim of x4 " + str(x4.size()))
         x5 = self.down4(x4)
-        print("dim of x5 " + str(x5.size()))
 
         x = self.up1(x5, x4)
-        print("dim of x " + str(x.size()))
         x = self.up2(x, x3)
-        print("dim of x " + str(x.size()))
         x = self.up3(x, x2)
-        print("dim of x " + str(x.size()))
         x = self.up4(x, x1)
-        print("dim of x " + str(x.size()))
         x = self.outc(x)
-        print("dim of x " + str(x.size()))
 
         return x
