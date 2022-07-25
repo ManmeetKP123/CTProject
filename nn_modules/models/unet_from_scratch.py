@@ -9,7 +9,7 @@ class SimpleConvolution(nn.Module):
         self.conv1 = nn.Conv3d(input_channel, output_channel, kernel_size=3, stride = 1, padding=1)
         self.conv2 = nn.Conv3d(output_channel, output_channel, kernel_size=3, stride = 1, padding=1)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(0.4)
+        self.dropout = nn.Dropout(0.2)
 
     def forward(self, x):
         print("first line of forward")
@@ -31,9 +31,9 @@ class DownConvolution(nn.Module):
         super().__init__()
         self.conv1 = nn.Conv3d(input_channel, output_channel, kernel_size=3, stride = 1, padding=1)
         self.conv2 = nn.Conv3d(output_channel, output_channel, kernel_size = 3, stride = 1, padding=1)
-        self.maxpool = nn.MaxPool3d(2, 2)
+        self.maxpool = nn.MaxPool3d(2)
         self.Relu = nn.ReLU()
-        self.dropout = nn.Dropout3d(0.4)
+        self.dropout = nn.Dropout3d(0.2)
     
     def forward(self, x):
         x = self.maxpool(x)
@@ -49,19 +49,22 @@ class DownConvolution(nn.Module):
 class UpConvolution(nn.Module):
     def __init__(self, input_channel, output_channel):
         super().__init__()
-        self.conv1 = nn.Conv3d(input_channel, output_channel, kernel_size = 3, stride = 1, padding=0)
-        self.conv2 = nn.Conv3d(output_channel, output_channel, kernel_size = 3, stride = 1, padding=0)
-        self.convTranspose = nn.ConvTranspose3d(output_channel, output_channel//2, kernel_size=2, stride=1, padding=0)
+        self.conv1 = nn.Conv3d(input_channel, output_channel, kernel_size = 2, stride = 2)
+        self.conv2 = nn.Conv3d(output_channel, output_channel, kernel_size = 2, stride = 2)
+        self.upsample = nn.Upsample(scale_factor = 2)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout3d(0.4)
+        self.dropout = nn.Dropout3d(0.2)
     
     def forward(self, x):
+        x = self.upsample(x)
+        print('size of the upsampled inpt ' + str(x.size()))
         x = self.conv1(x)
         x = self.relu(x)
+        print('size after conv 1 ' + str(x.size()))
         x = self.conv2(x)
         x = self.relu(x)
+        print("size after conv 2 " + str(x.size()))
         x = self.dropout(x)
-        x = self.convTranspose(x)
     
         return x 
 
@@ -72,7 +75,7 @@ class LastConvolution(nn.Module):
         self.conv2 = nn.Conv3d(output_channels, output_channels, kernel_size=3, stride = 1)
         self.conv3 = nn.Conv3d(output_channels, num_classes, kernel_size=1, stride = 1)
         self.Relu = nn.ReLU()
-        self.dropout = nn.Dropout3d(0.4)
+        self.dropout = nn.Dropout3d(0.2)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -102,8 +105,9 @@ class UNet(nn.Module):
         self.downBlock1 = DownConvolution(64, 128)
         self.downBlock2 = DownConvolution(128, 256)
         self.downBlock3 = DownConvolution(256, 512)
-        self.midMaxPool = nn.MaxPool3d(2, 2)
-        self.bridge = UpConvolution(512, 1024)
+        self.downBlock4 = DownConvolution(512, 1024)
+        self.bridge = nn.Sequential(nn.Conv3d(1024, 1024, kernel_size = 3, stride = 1), 
+                                    nn.Conv3d(1024, 1024, kernel_size = 3, stride = 1))
         self.upBlock1 = UpConvolution(1024,  512)
         self.upBlock2 = UpConvolution(512, 256)
         self.upBlock3 = UpConvolution(256, 128)
@@ -113,30 +117,33 @@ class UNet(nn.Module):
 
     
     def forward(self, x):
-        print("entered forward line 1")
         x_1 = self.simpleConv(x)
-        print("dimensions after the first convlutions " + str(x_1.size()))
+        print(x_1.size())
         x_2 = self.downBlock1(x_1)
-        print("dimension after the second convolution " + str(x_2.size()))
+        print(x_2.size())
         x_3 = self.downBlock2(x_2)
-        print("dimension after the third convolution " + str(x_3.size()))
+        print(x_3.size())
         x_4 = self.downBlock3(x_3)
-        print("dimension after the fourth convolution " + str(x_4.size()))
-        x_5 = self.midMaxPool(x_4)
-        print("dimension after the fifth convolution " + str(x_5.size()))
+        print(x_4.size())
+        x_5 = self.downBlock4(x_4)
+        print(x_5.size())
+        # x_5 = self.midMaxPool(x_4)
+        # print(x_5.size())
 
         x_6 = self.bridge(x_5)
+        print("dimension of x_6 " +str(x_6.size()) )
         crop_x_4 = crop_img(x_4, x_6)
+        print("dimension of cropped x_4 " + str(crop_x_4.size()))
         concat_x_4_6 = torch.cat((crop_x_4, x_6), 1)
-        print("dimension after the concatenation " + str(concat_x_4_6.size()))
+        print("dimension of concatenated x_4_6 " + str(concat_x_4_6.size()))
 
-        x_7 = self.upBlock1(concat_x_4_6)
+        x_7 = self.upBlock2(concat_x_4_6)
         print("dimension of x_7 " + str(x_7.size()))
         crop_x_3 = crop_img(x_3, x_7)
         concat_x_3_7 = torch.cat((crop_x_3, x_7), 1)
         print("dimension after the concatenation 2 " + str(concat_x_3_7.size()))
 
-        x_8 = self.upBlock2(concat_x_3_7)
+        x_8 = self.upBlock3(concat_x_3_7)
         crop_x_2 = crop_img(x_2, x_8)
         concat_x_2_8 = torch.cat((crop_x_2, x_8), 1)
         print("dimension after the concatenation 3 " + str(concat_x_2_8.size()))
@@ -149,5 +156,3 @@ class UNet(nn.Module):
         out = self.lastConv(concat_x_1_9)
 
         return out
-
-
