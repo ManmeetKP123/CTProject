@@ -47,22 +47,29 @@ class CTDataset(Dataset):
 
     def normalizing(self, volume, mask):
         volume_norm = []
-        # mask_norm = []
+        mask_norm = []
         for slice_index in range(0, np.shape(volume)[2]):
             vol_slice = volume[:, :, slice_index]
             # print("for the volume ")
             # print("numerator np.min" + str(np.min(vol_slice)))
             # print("denominator np.max " + str(np.max(vol_slice)))
-            norm_slice = (vol_slice - np.min(vol_slice)) / (np.max(vol_slice) - np.min(vol_slice))
+            min_val = np.min(vol_slice)
+            max_val = np.max(vol_slice)
+            if (min_val != max_val):
+                norm_slice = (vol_slice - min_val) / (max_val - min_val)
+            else: 
+                norm_slice = vol_slice
             volume_norm.append(norm_slice)
 
-        # for slice_index in range(0, np.shape(mask)[2]):
-        #     mask_slice = mask[:, :, slice_index]
-        #     print("for the mask ")
-        #     print("numerator np.min" + str(np.min(mask_slice)))
-        #     print("denominator np.max" + str(np.max(mask_slice)))
-        #     norm_mask_slice = (mask_slice - np.min(mask_slice)) / (np.max(mask_slice) - np.min(mask_slice))
-        #     mask_norm.append(norm_mask_slice)
+        for slice_index in range(0, np.shape(mask)[2]):
+            mask_slice = mask[:, :, slice_index]
+            min_val = np.min(mask_slice)
+            max_val = np.max(mask_slice)
+            if (min_val != max_val):
+                norm_slice = (mask_slice - min_val) / (max_val - min_val)
+            else: 
+                norm_slice = mask_slice
+            mask_norm.append(norm_slice)
         return np.array(volume_norm), np.array(mask)
 
     """
